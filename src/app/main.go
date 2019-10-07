@@ -9,15 +9,20 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		creds := VaultLogin()
-		fmt.Fprintf(w, creds)
-		result := DatabaseLogin(creds)
-		fmt.Fprintf(w, strconv.FormatBool(result))
+		if strings.Compare(creds, "") == 0 {
+			fmt.Fprintf(w, "Failed to login to vault")
+		} else {
+			fmt.Fprintf(w, creds)
+			result := DatabaseLogin(creds)
+			fmt.Fprintf(w, strconv.FormatBool(result))
+		}
 	})
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
@@ -54,13 +59,25 @@ type vaultCreds struct {
 
 func VaultLogin() string {
 	jwt := retrieveJwt()
+	if strings.Compare(jwt, "") == 0 {
+		return ""
+	}
 	token := loginVault(jwt)
+	if strings.Compare(token, "") == 0 {
+		return ""
+	}
 	creds := dbCred(token)
+	if strings.Compare(creds, "") == 0 {
+		return ""
+	}
 	return creds
 }
 
 func retrieveJwt() string {
-	f, _ := ioutil.ReadFile("")
+	f, err := ioutil.ReadFile("/var/run/secrets/tokens")
+	if err != nil {
+		return ""
+	}
 	return string(f)
 }
 
@@ -72,6 +89,9 @@ func loginVault(jwt string) string {
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	client := &http.Client{Timeout: time.Second * 10}
 	resp, _ := client.Do(req)
+	if resp.StatusCode != 200 {
+		return ""
+	}
 	respUnmarshal := vaultAuthReturn{}
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
@@ -88,6 +108,9 @@ func dbCred(token string) string {
 	req.Header.Add("X-Vault-Token", token)
 	client := &http.Client{Timeout: time.Second * 10}
 	resp, _ := client.Do(req)
+	if resp.StatusCode != 200 {
+		return ""
+	}
 	respUnmarshal := vaultCreds{}
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 
