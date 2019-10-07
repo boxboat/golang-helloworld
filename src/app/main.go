@@ -1,12 +1,27 @@
-package vault
+package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
+
+func main() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		creds := VaultLogin()
+		fmt.Fprintf(w, creds)
+		result := DatabaseLogin(creds)
+		fmt.Fprintf(w, strconv.FormatBool(result))
+	})
+	log.Fatal(http.ListenAndServe(":8080", nil))
+
+}
 
 type vaultAuthSend struct {
 	Jwt  string `json:"jwt"`
@@ -50,7 +65,7 @@ func retrieveJwt() string {
 }
 
 func loginVault(jwt string) string {
-	url := "vault.vault/auth/kubernetes/login"
+	url := "http://vault.vault.svc.cluster.local:8200/v1/auth/kubernetes/login"
 	toSendData := vaultAuthSend{jwt, "HelloWorld"}
 	data, _ := json.Marshal(toSendData)
 
@@ -68,7 +83,7 @@ func loginVault(jwt string) string {
 }
 
 func dbCred(token string) string {
-	url := "vault.vault/database/creds/mysql/test"
+	url := "http://vault.vault.svc.cluster.local:8200/v1/database/creds/mysql/test"
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("X-Vault-Token", token)
 	client := &http.Client{Timeout: time.Second * 10}
@@ -81,4 +96,14 @@ func dbCred(token string) string {
 	json.Unmarshal(bodyBytes, &respUnmarshal)
 
 	return respUnmarshal.Data.Username + ":" + respUnmarshal.Data.Password
+}
+
+func DatabaseLogin(creds string) bool {
+	db, err := sql.Open("mysql", creds+"@tcp(mysql.mysql.svc.cluster.local)/main")
+	defer db.Close()
+	if err != nil {
+		return false
+	} else {
+		return true
+	}
 }
