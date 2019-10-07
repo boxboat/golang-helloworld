@@ -15,6 +15,7 @@ import (
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
 		creds := VaultLogin()
 		if strings.Compare(creds, "") == 0 {
 			fmt.Fprintf(w, "Failed to login to vault")
