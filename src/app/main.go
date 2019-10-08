@@ -90,6 +90,7 @@ func loginVault(jwt string) string {
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	client := &http.Client{Timeout: time.Second * 10}
 	resp, _ := client.Do(req)
+	fmt.Printf(strconv.Itoa(resp.StatusCode))
 	if resp.StatusCode != 200 {
 		return ""
 	}
@@ -109,6 +110,7 @@ func dbCred(token string) string {
 	req.Header.Add("X-Vault-Token", token)
 	client := &http.Client{Timeout: time.Second * 10}
 	resp, _ := client.Do(req)
+	fmt.Printf(strconv.Itoa(resp.StatusCode))
 	if resp.StatusCode != 200 {
 		return ""
 	}
