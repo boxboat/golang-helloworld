@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "helloWorldBoxboat.fullname" . }}
+  name: {{ include "helloworld.fullname" . }}
   labels:
-    {{- include "helloWorldBoxboat.labels" . | nindent 4 }}
+    {{- include "helloworld.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "helloWorldBoxboat.selectorLabels" . | nindent 6 }}
+      {{- include "helloworld.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "helloWorldBoxboat.selectorLabels" . | nindent 8 }}
+        {{- include "helloworld.selectorLabels" . | nindent 8 }}
     spec:
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
     {{- end }}
-      serviceAccountName: {{ include "helloWorldBoxboat.serviceAccountName" . }}
+      serviceAccountName: {{ include "helloworld.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
